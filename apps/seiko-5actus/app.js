@@ -50,6 +50,7 @@ let W = g.getWidth();
 let H = g.getHeight();
 let cx = W/2;
 let cy = H/2;
+let showSeconds = !Bangle.isLocked();
 let Timeout;
 
 Bangle.setUI("clock");
@@ -100,14 +101,12 @@ function drawHands() {
 
   let hour = d.getHours() % 12;
   let min = d.getMinutes();
-  let sec = d.getSeconds();
 
   let twoPi = 2*Math.PI;
   let Pi = Math.PI;
 
   let hourAngle = (hour+(min/60))/12 * twoPi - Pi;
   let minAngle = (min/60) * twoPi - Pi;
-  let secAngle = (sec/60) * twoPi - Pi;
 
   g.setFontWorkSans();
   g.setColor(g.theme.bg);
@@ -132,13 +131,19 @@ function drawHands() {
      image:imgMin,
      rotate:minAngle,
      center:true
-    },
-    {x:cx,
+    }];
+  
+  if (showSeconds) {
+    let sec = d.getSeconds();
+    let secAngle = (sec/60) * twoPi - Pi;
+    
+    handLayers.push({x:cx,
      y:cy,
      image:imgSec,
      rotate:secAngle,
      center:true
-    }];
+    });
+  }
 
   g.setColor(g.theme.fg);
   g.drawImages(handLayers);
@@ -166,7 +171,9 @@ function displayRefresh() {
   drawHands();
   Bangle.drawWidgets();
 
-  let Pause = 1000 - (Date.now() % 1000);
+  let pauseTime = showSeconds ? 1000 : 60000;
+  
+  let Pause = pauseTime - (Date.now() % pauseTime);
   Timeout = setTimeout(displayRefresh,Pause);
 }
 
@@ -177,4 +184,10 @@ Bangle.on('lcdPower', (on) => {
   }
 });
 
+Bangle.on('lock', (on) => {
+  showSeconds = !on;
+  if (Timeout != null) { clearTimeout(Timeout); Timeout = undefined;}
+  displayRefresh();
+});
+          
 displayRefresh();
